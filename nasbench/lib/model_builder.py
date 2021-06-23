@@ -54,14 +54,14 @@ def build_model_fn(spec, config, num_train_images):
     aux_activations = []
 
     # Initial stem convolution
-    with tf.variable_scope('stem'):
+    with tf.compat.v1.variable_scope('stem'):
       net = base_ops.conv_bn_relu(
           features, 3, config['stem_filter_size'],
           is_training, config['data_format'])
       aux_activations.append(net)
 
     for stack_num in range(config['num_stacks']):
-      channels = net.get_shape()[channel_axis].value
+      channels = net.get_shape()[channel_axis]
 
       # Downsample at start (except first)
       if stack_num > 0:
@@ -75,9 +75,9 @@ def build_model_fn(spec, config, num_train_images):
         # Double output channels each time we downsample
         channels *= 2
 
-      with tf.variable_scope('stack{}'.format(stack_num)):
+      with tf.compat.v1.variable_scope('stack{}'.format(stack_num)):
         for module_num in range(config['num_modules_per_stack']):
-          with tf.variable_scope('module{}'.format(module_num)):
+          with tf.compat.v1.variable_scope('module{}'.format(module_num)):
             net = build_module(
                 spec,
                 inputs=net,
@@ -269,7 +269,7 @@ def build_module(spec, inputs, channels, is_training):
   else:
     raise ValueError('invalid data_format')
 
-  input_channels = inputs.get_shape()[channel_axis].value
+  input_channels = inputs.get_shape()[channel_axis]
   # vertex_channels[i] = number of output channels of vertex i
   vertex_channels = compute_vertex_channels(
       input_channels, channels, spec.matrix)
@@ -279,7 +279,7 @@ def build_module(spec, inputs, channels, is_training):
 
   final_concat_in = []
   for t in range(1, num_vertices - 1):
-    with tf.variable_scope('vertex_{}'.format(t)):
+    with tf.compat.v1.variable_scope('vertex_{}'.format(t)):
       # Create interior connections, truncating if necessary
       add_in = [truncate(tensors[src], vertex_channels[t], spec.data_format)
                 for src in range(1, t) if spec.matrix[src, t]]
@@ -311,7 +311,7 @@ def build_module(spec, inputs, channels, is_training):
   if not final_concat_in:
     # No interior vertices, input directly connected to output
     assert spec.matrix[0, num_vertices - 1]
-    with tf.variable_scope('output'):
+    with tf.compat.v1.variable_scope('output'):
       outputs = projection(
           tensors[0],
           channels,
@@ -337,7 +337,7 @@ def build_module(spec, inputs, channels, is_training):
 
 def projection(inputs, channels, is_training, data_format):
   """1x1 projection (as in ResNet) followed by batch normalization and ReLU."""
-  with tf.variable_scope('projection'):
+  with tf.compat.v1.variable_scope('projection'):
     net = base_ops.conv_bn_relu(inputs, 1, channels, is_training, data_format)
 
   return net
@@ -346,10 +346,10 @@ def projection(inputs, channels, is_training, data_format):
 def truncate(inputs, channels, data_format):
   """Slice the inputs to channels if necessary."""
   if data_format == 'channels_last':
-    input_channels = inputs.get_shape()[3].value
+    input_channels = inputs.get_shape()[3]
   else:
     assert data_format == 'channels_first'
-    input_channels = inputs.get_shape()[1].value
+    input_channels = inputs.get_shape()[1]
 
   if input_channels < channels:
     raise ValueError('input channel < output channels for truncate')
@@ -418,7 +418,7 @@ def compute_vertex_channels(input_channels, output_channels, matrix):
           vertex_channels[v] = max(vertex_channels[v], vertex_channels[dst])
     assert vertex_channels[v] > 0
 
-  tf.logging.info('vertex_channels: %s', str(vertex_channels))
+  tf.compat.v1.logging.info('vertex_channels: %s', str(vertex_channels))
 
   # Sanity check, verify that channels never increase and final channels add up.
   final_fan_in = 0
@@ -449,7 +449,7 @@ def _covariance_matrix(activations):
   Returns:
     [batch, batch] shape tensor for the covariance matrix.
   """
-  batch_size = activations.get_shape()[0].value
+  batch_size = activations.get_shape()[0]
   flattened = tf.reshape(activations, [batch_size, -1])
   means = tf.reduce_mean(flattened, axis=1, keepdims=True)
 

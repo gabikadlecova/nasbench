@@ -21,9 +21,10 @@ from __future__ import print_function
 from absl import app
 from nasbench import api
 
+
 # Replace this string with the path to the downloaded nasbench.tfrecord before
 # executing.
-NASBENCH_TFRECORD = '/path/to/nasbench.tfrecord'
+NASBENCH_TFRECORD = './nasbench_full.tfrecord'
 
 INPUT = 'input'
 OUTPUT = 'output'

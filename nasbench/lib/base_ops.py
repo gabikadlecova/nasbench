@@ -38,24 +38,24 @@ def conv_bn_relu(inputs, conv_size, conv_filters, is_training, data_format):
   else:
     raise ValueError('invalid data_format')
 
-  net = tf.layers.conv2d(
-      inputs=inputs,
+  net = tf.keras.layers.Conv2D(
+      #inputs=inputs,
       filters=conv_filters,
       kernel_size=conv_size,
       strides=(1, 1),
       use_bias=False,
-      kernel_initializer=tf.variance_scaling_initializer(),
+      kernel_initializer=tf.compat.v1.variance_scaling_initializer(),
       padding='same',
-      data_format=data_format)
+      data_format=data_format)(inputs)
 
-  net = tf.layers.batch_normalization(
-      inputs=net,
+  net = tf.keras.layers.BatchNormalization(
       axis=axis,
       momentum=BN_MOMENTUM,
       epsilon=BN_EPSILON,
-      training=is_training)
+      #training=is_training
+      )(net)
 
-  net = tf.nn.relu(net)
+  net = tf.keras.layers.ReLU()(net)
 
   return net
 
@@ -97,7 +97,7 @@ class Conv3x3BnRelu(BaseOp):
   """3x3 convolution with batch norm and ReLU activation."""
 
   def build(self, inputs, channels):
-    with tf.variable_scope('Conv3x3-BN-ReLU'):
+    with tf.compat.v1.variable_scope('Conv3x3-BN-ReLU'):
       net = conv_bn_relu(
           inputs, 3, channels, self.is_training, self.data_format)
 
@@ -108,7 +108,7 @@ class Conv1x1BnRelu(BaseOp):
   """1x1 convolution with batch norm and ReLU activation."""
 
   def build(self, inputs, channels):
-    with tf.variable_scope('Conv1x1-BN-ReLU'):
+    with tf.compat.v1.variable_scope('Conv1x1-BN-ReLU'):
       net = conv_bn_relu(
           inputs, 1, channels, self.is_training, self.data_format)
 
@@ -120,13 +120,12 @@ class MaxPool3x3(BaseOp):
 
   def build(self, inputs, channels):
     del channels    # Unused
-    with tf.variable_scope('MaxPool3x3'):
-      net = tf.layers.max_pooling2d(
-          inputs=inputs,
+    with tf.compat.v1.variable_scope('MaxPool3x3'):
+      net = tf.keras.layers.MaxPool2D(
           pool_size=(3, 3),
           strides=(1, 1),
           padding='same',
-          data_format=self.data_format)
+          data_format=self.data_format)(inputs)
 
     return net
 
@@ -136,7 +135,7 @@ class BottleneckConv3x3(BaseOp):
   # TODO(chrisying): verify this block can reproduce results of ResNet-50.
 
   def build(self, inputs, channels):
-    with tf.variable_scope('BottleneckConv3x3'):
+    with tf.compat.v1.variable_scope('BottleneckConv3x3'):
       net = conv_bn_relu(
           inputs, 1, channels // 4, self.is_training, self.data_format)
       net = conv_bn_relu(
@@ -151,7 +150,7 @@ class BottleneckConv5x5(BaseOp):
   """[1x1(/4)]+5x5+[1x1(*4)] conv. Uses BN + ReLU post-activation."""
 
   def build(self, inputs, channels):
-    with tf.variable_scope('BottleneckConv5x5'):
+    with tf.compat.v1.variable_scope('BottleneckConv5x5'):
       net = conv_bn_relu(
           inputs, 1, channels // 4, self.is_training, self.data_format)
       net = conv_bn_relu(
@@ -166,13 +165,12 @@ class MaxPool3x3Conv1x1(BaseOp):
   """3x3 max pool with no subsampling followed by 1x1 for rescaling."""
 
   def build(self, inputs, channels):
-    with tf.variable_scope('MaxPool3x3-Conv1x1'):
-      net = tf.layers.max_pooling2d(
-          inputs=inputs,
+    with tf.compat.v1.variable_scope('MaxPool3x3-Conv1x1'):
+      net = tf.keras.layers.MaxPool2D(
           pool_size=(3, 3),
           strides=(1, 1),
           padding='same',
-          data_format=self.data_format)
+          data_format=self.data_format)(inputs)
 
       net = conv_bn_relu(net, 1, channels, self.is_training, self.data_format)
 
